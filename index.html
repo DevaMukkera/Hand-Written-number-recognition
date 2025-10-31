@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0F2027">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Draw digits and watch AI recognize them using machine learning">
+    <title>AI Digit Recognition</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- CDN Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
+
+    <!-- Particle Canvas Background -->
+    <canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+    <!-- Loading Splash Screen -->
+    <div id="loading-screen" class="screen-overlay">
+        <div class="screen-content">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <h1 class="gradient-text animated-title">✨ AI Digit Recognition</h1>
+            </div>
+            <div class="spinner-container">
+                <div class="spinner"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p id="loading-status" class="status-text">Initializing Neural Network...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="screen-overlay" style="display: none;">
+        <div class="screen-content">
+            <div class="error-icon">⚠️</div>
+            <h2 class="error-title">Failed to load AI model</h2>
+            <p class="error-message">Please check your internet connection</p>
+            <button id="retry-button" class="btn btn-primary">Try Again</button>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- Left Panel: Drawing -->
+        <div class="panel drawing-panel glass-panel">
+            <div class="panel-glow"></div>
+            <div class="panel-header">
+                <div class="title-wrapper">
+                    <div class="icon-badge">
+                        <span class="icon-spark">✨</span>
+                    </div>
+                    <div>
+                        <h1 class="gradient-text main-title">AI Digit Recognition</h1>
+                        <p class="subtitle">Neural network powered recognition</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container">
+                <div class="canvas-wrapper">
+                    <div class="canvas-glow"></div>
+                    <div class="canvas-border-effect"></div>
+                    <canvas id="drawing-canvas"></canvas>
+                    <div class="canvas-overlay">
+                        <div class="guide-text">Draw a digit here</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brush Size Controls -->
+            <div class="brush-controls">
+                <div class="control-header">
+                    <span class="control-icon">🖌️</span>
+                    <label class="control-label">Brush Size</label>
+                </div>
+                <div class="brush-buttons">
+                    <button class="btn btn-brush" data-size="4">
+                        <span class="brush-preview small-preview"></span>
+                        <span class="brush-label">Small</span>
+                    </button>
+                    <button class="btn btn-brush active" data-size="8">
+                        <span class="brush-preview medium-preview"></span>
+                        <span class="brush-label">Medium</span>
+                    </button>
+                    <button class="btn btn-brush" data-size="12">
+                        <span class="brush-preview large-preview"></span>
+                        <span class="brush-label">Large</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button id="undo-button" class="btn btn-action">
+                    <span class="btn-icon">↶</span>
+                    <span class="btn-label">Undo</span>
+                </button>
+                <button id="clear-button" class="btn btn-action btn-danger">
+                    <span class="btn-icon">🗑️</span>
+                    <span class="btn-label">Clear</span>
+                </button>
+                <button id="recognize-button" class="btn btn-primary btn-large" disabled>
+                    <span class="btn-glow"></span>
+                    <span class="btn-icon">🎯</span>
+                    <span class="btn-label">Recognize</span>
+                    <span class="btn-ripple"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel: Results -->
+        <div class="panel results-panel glass-panel">
+            <div class="panel-glow"></div>
+
+            <!-- Prediction Display -->
+            <div class="prediction-display">
+                <div class="prediction-bg-effect"></div>
+                <div class="prediction-particles">
+                    <span class="particle"></span>
+                    <span class="particle"></span>
+                    <span class="particle"></span>
+                </div>
+                <div class="prediction-label">
+                    <span class="label-icon">🎯</span>
+                    PREDICTION
+                </div>
+                <div class="prediction-value-container">
+                    <div id="prediction-value" class="prediction-value">?</div>
+                    <div class="prediction-pulse"></div>
+                </div>
+                <div class="confidence-container">
+                    <div class="confidence-badge">
+                        <span class="confidence-icon">📊</span>
+                        <span id="confidence-value" class="confidence-value">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Probabilities Section -->
+            <div class="probabilities-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <span class="title-icon">📊</span>
+                        Probability Distribution
+                    </h3>
+                    <div class="section-badge">Top 3</div>
+                </div>
+                <div id="probability-bars-container" class="probability-bars"></div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="stats-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <span class="title-icon">📈</span>
+                        Session Statistics
+                    </h3>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon">🔢</div>
+                        <div class="stat-content">
+                            <div id="total-predictions" class="stat-value">0</div>
+                            <div class="stat-label">Total Predictions</div>
+                        </div>
+                        <div class="stat-sparkle"></div>
+                    </div>
+                    <div class="stat-card glass-card">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-content">
+                            <div id="average-confidence" class="stat-value">0%</div>
+                            <div class="stat-label">Avg Confidence</div>
+                        </div>
+                        <div class="stat-sparkle"></div>
+                    </div>
+                </div>
+                <button id="reset-stats-button" class="btn btn-small btn-reset">
+                    <span class="btn-icon">🔄</span>
+                    <span>Reset Statistics</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/particles.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/model.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
